@@ -221,7 +221,7 @@ class Markdown(object):
             self._escape_table['"'] = _hash_ascii('"')
             self._escape_table["'"] = _hash_ascii("'")
         if "video" in self.extras:
-            self._video = VideoUrlHandler()
+            self._video = StreamingVideoUrlHandler()
 
     def reset(self):
         self.urls = {}
@@ -2079,70 +2079,96 @@ def _xml_encode_email_char_at_random(ch):
         return '&#%s;' % ord(ch)
 
 
-def _is_video_url(url):
-    """True, if url matches a video hosting service
+from xml.etree import ElementTree as etree
+class StreamingVideoUrlHandler(object):
+    """
     data copied from
     http://code.google.com/p/python-markdown-video/source/browse/mdx_video.py?r=0.1.6
-    Format:
-        provider name
-        embed url pattern
-        stream url pattern
-        width x height
-        height
+    
+    to add another provider, extend the following dictionary
+    * key - name of the hosting service
+    * value - the data.
 
-    * bliptv 
-      r'([^(]|^)http://(\w+\.|)blip.tv/file/get/(?P<param>\S+.flv)'
-      'http://blip.tv/scripts/flash/showplayer.swf?file=http://blip.tv/file/get/%s' % m.group('param')
-      480 x 300
+    In the value of the dictionary, the following is expected:
+    * ``regex`` - a compiled regular expression matching the url used to share the video
+      NOTE: if regex has just one parameter to extract - name it "param"
 
-    * dailymotion
-      r'([^(]|^)http://www\.dailymotion\.com/(?P<param>\S+)'
-      'http://www.dailymotion.com/swf/%s' % m.group('param').split('/')[-1]
-      480 x 405
+    * ``get_params`` - [optional] - a function that pre-processes the parameters
+      before insertion into the ``stream_url``.
+      The default ``get_params`` is ``lambda v: v.group('param')``. The argument
+      to ``get_params`` always is the match object obtained upon using the ``regex``.
 
-    * gametrailers
-      r'([^(]|^)http://www.gametrailers.com/video/[a-z0-9-]+/(?P<param>\d+)'
-      'http://www.gametrailers.com/remote_wrap.php?mid=%s' % m.group('param').split('/')[-1]
-      480 x 392
+    * ``stream_url`` - a template for the video streaming url.
+      May contain positional string interpolation parameters, in which case
+      parameters will be substituted from the ``get_params`` function
+      (otherwise - ``stream_url`` will be passed as is)
 
-    * metacafe
-      r'([^(]|^)http://www\.metacafe\.com/watch/(?P<param>\S+)/'
-      'http://www.metacafe.com/fplayer/%s.swf' % m.group('param')
-      498 x 423
-
-    * veoh
-      r'([^(]|^)http://www\.veoh\.com/\S*(#watch%3D|watch/)(?P<param>\w+)'
-      'http://www.veoh.com/videodetails2.swf?permalinkId=%s' % m.group('param')
-      410 x 341
-
-    * vimeo'
-      r'([^(]|^)http://(www.|)vimeo\.com/(?P<param>\d+)\S*'
-      'http://vimeo.com/moogaloop.swf?clip_id=%s&amp;server=vimeo.com' % m.group('param')
-      400 x 321
-
-    * yahoo - two parameters in the url
-      r'([^(]|^)http://video\.yahoo\.com/watch/(?P<yahoovid>\d+)/(?P<yahooid>\d+)'
-      http://d.yimg.com/static.video.yahoo.com/yep/YV_YEP.swf?ver=2.2.40
-      special case - requires xml subtructure for the parameters
-      512 x 322
-
-    * youtube
-      r'([^(]|^)http://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*'
-      'http://www.youtube.com/v/%s' % m.group('param')
-      425 x 344
+    * ``extra_param_tags`` - [optional] - necessary when the flash objects needs
+      additional <param /> tags inside <object />
+      Format: a tuple of dictionaries, where each dictionaly has
+      two items 'name' and 'value' - 'name' is name of the flash parameter,
+      'value' is a function that takes the ``regex`` match object and
+      returns value of the parameter (for an example, see Yahoo setup below)
     """
-    video_regex = re.compile(r'([^(]|^)http://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*')
-    return re.match(url)
-
-from xml.etree import ElementTree as etree
-class VideoUrlHandler(object):
     providers = {
+        'blip.tv': { 
+            'regex': re.compile(r'([^(]|^)http://(\w+\.|)blip.tv/file/get/(?P<param>\S+.flv)'),
+            'stream_url': 'http://blip.tv/scripts/flash/showplayer.swf?file=http://blip.tv/file/get/%s',
+            'width': 480,
+            'height': 300
+        },
+        'dailymotion': {
+            'regex': re.compile(r'([^(]|^)http://www\.dailymotion\.com/(?P<param>\S+)'),
+            'get_params': lambda m: m.group('param').split('/')[-1],
+            'stream_url': 'http://www.dailymotion.com/swf/%s',
+            'width': 480,
+            'height': 405
+        },
+        'gametrailers': {
+            'regex': re.compile(r'([^(]|^)http://www.gametrailers.com/video/[a-z0-9-]+/(?P<param>\d+)'),
+            'get_params': lambda m: m.group('param').split('/')[-1],
+            'stream_url': 'http://www.gametrailers.com/remote_wrap.php?mid=%s',
+            'width': 480,
+            'height': 392
+        },
+        'metacafe': {
+            'regex': re.compile(r'([^(]|^)http://www\.metacafe\.com/watch/(?P<param>\S+)/'),
+            'stream_url': 'http://www.metacafe.com/fplayer/%s.swf',
+            'width': 498,
+            'height': 423
+        },
+        'veoh': {
+            'regex': re.compile(r'([^(]|^)http://www\.veoh\.com/\S*(#watch%3D|watch/)(?P<param>\w+)'),
+            'stream_url': 'http://www.veoh.com/videodetails2.swf?permalinkId=%s',
+            'width': 410,
+            'height': 341
+        },
+        'vimeo': {
+            'regex': re.compile(r'([^(]|^)http://(www.|)vimeo\.com/(?P<param>\d+)\S*'),
+            'stream_url': re.compile('http://vimeo.com/moogaloop.swf?clip_id=%s&amp;server=vimeo.com'),
+            'width': 400,
+            'height': 321
+        },
+        #yahoo - is special two parameters in the url, and more elaborate <object> is needed
+        'yahoo': {
+            'regex': re.compile(r'([^(]|^)http://video\.yahoo\.com/watch/(?P<yahoovid>\d+)/(?P<yahooid>\d+)'),
+            'stream_url': 'http://d.yimg.com/static.video.yahoo.com/yep/YV_YEP.swf?ver=2.2.40',
+            'extra_param_tags': (
+                {
+                    'name': 'flashVars',
+                    'value': lambda m: 'id=%s&vid=%s' % (m.group('yahooid'), m.group('yahoovid'))
+                }
+            ),
+            'width': 512,
+            'height': 322
+        },
         'youtube': {
             'regex': re.compile(r'([^(]|^)http://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*'),
             'stream_url': 'http://www.youtube.com/v/%s',
             'width': 425,
             'height': 344
         },
+
     }
 
     def get_embed_video_xml(self, url):
@@ -2152,10 +2178,16 @@ class VideoUrlHandler(object):
         the etree manipulation copied from mdx_video extension
         for the original markdown module
         """
-        for name, data in self.providers.items():
+        for data in self.providers.values():
             m = data['regex'].match(url)
             if m:
-                stream_url = data['stream_url'] % m.group('param')
+
+                get_params = data.get('get_params', lambda m: m.group('param'))
+
+                if '%s' in data['stream_url']:
+                    stream_url = data['stream_url'] % get_params(m)
+                else:
+                    stream_url = data['stream_url']
 
                 flash = etree.Element('object')
                 flash.set('type', 'application/x-shockwave-flash')
@@ -2172,6 +2204,13 @@ class VideoUrlHandler(object):
                 param.set('name', 'allowFullScreen')
                 param.set('value', 'true')
                 flash.append(param)
+
+                if 'extra_param_tags' in data:
+                    for extra_param_tag in data['extra_param_tags']:
+                        param = etree.Element('param')
+                        param.set('name', extra_param_tag['name'])
+                        param.set('value', extra_param_tag['value'](m))
+                        flash.append(param)
 
                 return '<p>' + etree.tostring(flash) + '</p>'
 
