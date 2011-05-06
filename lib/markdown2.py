@@ -2084,6 +2084,15 @@ class StreamingVideoUrlHandler(object):
     """
     data copied from
     http://code.google.com/p/python-markdown-video/source/browse/mdx_video.py?r=0.1.6
+
+    Caveat - only YouTube and Vimeo work!
+    
+    Looks like the video hosts do not want to agree
+    on a stable way to embed videos, or a simple mapping of page url
+    to the video streaming url.
+
+    If you wish to support any of those
+    please keep track of possible changes in their url strucure
     
     to add another provider, extend the following dictionary
     * key - name of the hosting service
@@ -2111,57 +2120,57 @@ class StreamingVideoUrlHandler(object):
       returns value of the parameter (for an example, see Yahoo setup below)
     """
     providers = {
-        'blip.tv': { 
-            'regex': re.compile(r'([^(]|^)http://(\w+\.|)blip.tv/file/get/(?P<param>\S+.flv)'),
-            'stream_url': 'http://blip.tv/scripts/flash/showplayer.swf?file=http://blip.tv/file/get/%s',
-            'width': 480,
-            'height': 300
-        },
-        'dailymotion': {
-            'regex': re.compile(r'([^(]|^)http://www\.dailymotion\.com/(?P<param>\S+)'),
-            'get_params': lambda m: m.group('param').split('/')[-1],
-            'stream_url': 'http://www.dailymotion.com/swf/%s',
-            'width': 480,
-            'height': 405
-        },
-        'gametrailers': {
-            'regex': re.compile(r'([^(]|^)http://www.gametrailers.com/video/[a-z0-9-]+/(?P<param>\d+)'),
-            'get_params': lambda m: m.group('param').split('/')[-1],
-            'stream_url': 'http://www.gametrailers.com/remote_wrap.php?mid=%s',
-            'width': 480,
-            'height': 392
-        },
-        'metacafe': {
-            'regex': re.compile(r'([^(]|^)http://www\.metacafe\.com/watch/(?P<param>\S+)/'),
-            'stream_url': 'http://www.metacafe.com/fplayer/%s.swf',
-            'width': 498,
-            'height': 423
-        },
+        #'blip.tv': { 
+        #    'regex': re.compile(r'([^(]|^)http://(\w+\.|)blip.tv/file/get/(?P<param>\S+.flv)'),
+        #    'stream_url': 'http://blip.tv/scripts/flash/showplayer.swf?file=http://blip.tv/file/get/%s',
+        #    'width': 480,
+        #    'height': 300
+        #},
+        #'dailymotion': {
+        #    'regex': re.compile(r'([^(]|^)http://www\.dailymotion\.com/(?P<param>\S+)'),
+        #    'get_params': lambda m: m.group('param').split('/')[-1],
+        #    'stream_url': 'http://www.dailymotion.com/swf/%s',
+        #    'width': 480,
+        #    'height': 405
+        #},
+        #'gametrailers': {
+        #    'regex': re.compile(r'([^(]|^)http://www.gametrailers.com/video/[a-z0-9-]+/(?P<param>\d+)'),
+        #    'get_params': lambda m: m.group('param').split('/')[-1],
+        #    'stream_url': 'http://www.gametrailers.com/remote_wrap.php?mid=%s',
+        #    'width': 480,
+        #    'height': 392
+        #},
+        #'metacafe': {
+        #    'regex': re.compile(r'([^(]|^)http://www\.metacafe\.com/watch/(?P<param>\S+)/'),
+        #    'stream_url': 'http://www.metacafe.com/fplayer/%s.swf',
+        #    'width': 498,
+        #    'height': 423
+        #},
         'veoh': {
             'regex': re.compile(r'([^(]|^)http://www\.veoh\.com/\S*(#watch%3D|watch/)(?P<param>\w+)'),
             'stream_url': 'http://www.veoh.com/videodetails2.swf?permalinkId=%s',
             'width': 410,
             'height': 341
         },
-        'vimeo': {
-            'regex': re.compile(r'([^(]|^)http://(www.|)vimeo\.com/(?P<param>\d+)\S*'),
-            'stream_url': re.compile('http://vimeo.com/moogaloop.swf?clip_id=%s&amp;server=vimeo.com'),
-            'width': 400,
-            'height': 321
-        },
+        #'vimeo': {
+        #    'regex': re.compile(r'([^(]|^)http://(www.|)vimeo\.com/(?P<param>\d+)\S*'),
+        #    'stream_url': 'http://vimeo.com/moogaloop.swf?clip\_id=%s&amp;server=vimeo.com',
+        #    'width': 400,
+        #    'height': 321
+        #},
         #yahoo - is special two parameters in the url, and more elaborate <object> is needed
-        'yahoo': {
-            'regex': re.compile(r'([^(]|^)http://video\.yahoo\.com/watch/(?P<yahoovid>\d+)/(?P<yahooid>\d+)'),
-            'stream_url': 'http://d.yimg.com/static.video.yahoo.com/yep/YV_YEP.swf?ver=2.2.40',
-            'extra_param_tags': (
-                {
-                    'name': 'flashVars',
-                    'value': lambda m: 'id=%s&vid=%s' % (m.group('yahooid'), m.group('yahoovid'))
-                }
-            ),
-            'width': 512,
-            'height': 322
-        },
+        #yahoo': {
+        #    'regex': re.compile(r'([^(]|^)http://video\.yahoo\.com/watch/(?P<yahoovid>\d+)/(?P<yahooid>\d+)'),
+        #    'stream_url': 'http://d.yimg.com/static.video.yahoo.com/yep/YV_YEP.swf?ver=2.2.40',
+        #    'extra_param_tags': (
+        #        {
+        #            'name': 'flashVars',
+        #            'value': lambda m: 'id=%s&vid=%s' % (m.group('yahooid'), m.group('yahoovid'))
+        #        }
+        #    ),
+        #    'width': 512,
+        #    'height': 322
+        #},
         'youtube': {
             'regex': re.compile(r'([^(]|^)http://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*'),
             'stream_url': 'http://www.youtube.com/v/%s',
