@@ -1087,7 +1087,7 @@ class Markdown(object):
                         else:
                             title_str = ''
                         if is_img:
-                            if "video" in self._extras:
+                            if "video" in self.extras:
                                 result = self._video.get_embed_video_xml(url)
                                 if result == None:
                                     #again - copy/paste - see else branch below
