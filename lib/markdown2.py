@@ -2147,8 +2147,8 @@ class StreamingVideoUrlHandler(object):
         #    'height': 423
         #},
         'veoh': {
-            'regex': re.compile(r'([^(]|^)https?://www\.veoh\.com/\S*(#watch%3D|watch/)(?P<param>\w+)'),
-            'stream_url': 'http://www.veoh.com/videodetails2.swf?permalinkId=%s',
+            'regex': re.compile(r'([^(]|^)(?P<protocol>https?)://www\.veoh\.com/\S*(#watch%3D|watch/)(?P<param>\w+)'),
+            'stream_url': '%s://www.veoh.com/videodetails2.swf?permalinkId=%s',
             'width': 410,
             'height': 341
         },
@@ -2172,8 +2172,8 @@ class StreamingVideoUrlHandler(object):
         #    'height': 322
         #},
         'youtube': {
-            'regex': re.compile(r'([^(]|^)https?://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*'),
-            'stream_url': 'http://www.youtube.com/v/%s',
+            'regex': re.compile(r'([^(]|^)(?P<protocol>https?)://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*'),
+            'stream_url': '%s://www.youtube.com/v/%s',
             'width': 425,
             'height': 344
         },
@@ -2189,12 +2189,11 @@ class StreamingVideoUrlHandler(object):
         """
         for data in self.providers.values():
             m = data['regex'].match(url)
+
             if m:
-
-                get_params = data.get('get_params', lambda m: m.group('param'))
-
                 if '%s' in data['stream_url']:
-                    stream_url = data['stream_url'] % get_params(m)
+                    params = tuple([m.group('protocol'), m.group('param')])
+                    stream_url = data['stream_url'] % params
                 else:
                     stream_url = data['stream_url']
 
