@@ -2147,7 +2147,7 @@ class StreamingVideoUrlHandler(object):
         #    'height': 423
         #},
         'veoh': {
-            'regex': re.compile(r'([^(]|^)http://www\.veoh\.com/\S*(#watch%3D|watch/)(?P<param>\w+)'),
+            'regex': re.compile(r'([^(]|^)https?://www\.veoh\.com/\S*(#watch%3D|watch/)(?P<param>\w+)'),
             'stream_url': 'http://www.veoh.com/videodetails2.swf?permalinkId=%s',
             'width': 410,
             'height': 341
@@ -2172,7 +2172,7 @@ class StreamingVideoUrlHandler(object):
         #    'height': 322
         #},
         'youtube': {
-            'regex': re.compile(r'([^(]|^)http://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*'),
+            'regex': re.compile(r'([^(]|^)https?://www\.youtube\.com/watch\?\S*v=(?P<param>[A-Za-z0-9_&=-]+)\S*'),
             'stream_url': 'http://www.youtube.com/v/%s',
             'width': 425,
             'height': 344
